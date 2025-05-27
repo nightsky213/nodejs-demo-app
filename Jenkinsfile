@@ -12,7 +12,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/nightsky213/nodejs-demo-app.git'
+                git branch: 'main', url: 'https://github.com/nightsky213/nodejs-demo-app.git'
             }
         }
 
