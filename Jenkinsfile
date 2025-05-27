@@ -42,6 +42,12 @@ pipeline {
                     sh 'docker push $IMAGE_NAME:$BUILD_NUMBER'
                 }
             }
+        stage('Run Container') {
+           steps {
+               sh 'docker run -d -p 3000:3000 --name nodejs-app vibhavakrishna/nodejs-demo-app:$BUILD_NUMBER'
+    }
+}
+
         }
     }
 
