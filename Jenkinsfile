@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        nodejs 'NodeJS 18' // You must define this in Jenkins > Global Tool Configuration
+        nodejs 'NodeJS 16' // You must define this in Jenkins > Global Tool Configuration
     }
 
     environment {
@@ -42,12 +42,13 @@ pipeline {
                     sh 'docker push $IMAGE_NAME:$BUILD_NUMBER'
                 }
             }
-        stage('Run Container') {
-           steps {
-               sh 'docker run -d -p 3000:3000 --name nodejs-app vibhavakrishna/nodejs-demo-app:$BUILD_NUMBER'
-    }
-}
+        }
 
+        stage('Run Container') {
+            steps {
+                sh 'docker rm -f nodejs-app || true' // Stop old container if running
+                sh 'docker run -d -p 3000:3000 --name nodejs-app $IMAGE_NAME:$BUILD_NUMBER'
+            }
         }
     }
 
