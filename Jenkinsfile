@@ -2,11 +2,12 @@ pipeline {
     agent any
 
     tools {
-        nodejs 'NodeJS 18' // You must define this in Jenkins > Global Tool Configuration
+        nodejs 'NodeJS 18' // Ensure this is set in Jenkins > Global Tool Configuration
     }
 
     environment {
         IMAGE_NAME = "vibhavakrishna/nodejs-demo-app"
+        CONTAINER_NAME = "nodejs-app"
     }
 
     stages {
@@ -24,7 +25,6 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                // Runs tests if any; doesn't fail the build if they’re missing
                 sh 'npm test || echo "No tests found"'
             }
         }
@@ -32,6 +32,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t $IMAGE_NAME:$BUILD_NUMBER .'
+                sh 'docker tag $IMAGE_NAME:$BUILD_NUMBER $IMAGE_NAME:latest' // Optional: Tag as latest
             }
         }
 
@@ -40,14 +41,25 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                     sh 'echo $PASS | docker login -u $USER --password-stdin'
                     sh 'docker push $IMAGE_NAME:$BUILD_NUMBER'
+                    sh 'docker push $IMAGE_NAME:latest' // Optional
                 }
             }
         }
 
-        stage('Run Container') {
+        stage('Deploy New Container') {
             steps {
-                sh 'docker rm -f nodejs-app || true' // Stop old container if running
-                sh 'docker run -d -p 3000:3000 --name nodejs-app $IMAGE_NAME:$BUILD_NUMBER'
+                script {
+                    // Stop and remove the existing container if it exists
+                    sh '''
+                        if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
+                            echo "Stopping and removing existing container..."
+                            docker rm -f $CONTAINER_NAME
+                        fi
+
+                        echo "Running new container..."
+                        docker run -d -p 3000:3000 --name $CONTAINER_NAME $IMAGE_NAME:$BUILD_NUMBER
+                    '''
+                }
             }
         }
     }
